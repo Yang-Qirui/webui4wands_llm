@@ -299,9 +299,10 @@ document.body.addEventListener("dblclick", function () {
 // 评分功能
 const starRatings = document.querySelectorAll('.star-rating');
 let currentRatings = {
-    fluency: 0,
-    usefulness: 0,
-    safety: 0
+    correctness: 0,
+    completeness: 0,
+    relevance: 0,
+    ethic: 0,
 };
 
 // 为每个评分类型创建星星
@@ -323,7 +324,6 @@ starRatings.forEach(ratingContainer => {
             const ratingType = ratingContainer.dataset.ratingType;
             currentRatings[ratingType] = clickedValue;
             updateStars(ratingContainer, clickedValue);
-            sendRating();
         }
     });
 
@@ -360,14 +360,5 @@ function sendRating() {
 // 评分按钮点击事件（可选：用于重置或提交）
 rateBtn.addEventListener('click', () => {
     // 重置所有评分
-    // console.log("Click")
-    sendDataToPython({
-        "value":
-        {
-            "popup_ratings": window.parent.rateBtnCount,
-        }
-    });
-    window.parent.rateBtnCount += 1
-    // currentRatings = { fluency: 0, usefulness: 0, safety: 0 };
-    // starRatings.forEach(container => updateStars(container, 0));
+    sendRating();
 });

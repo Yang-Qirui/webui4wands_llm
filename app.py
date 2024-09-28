@@ -29,7 +29,6 @@ if "initial_settings" not in st.session_state:
     # ss参数初始化
     st.session_state["frontend_msg_dict"] = {}
     st.session_state["ratings"] = {}
-    st.session_state["popup_count"] = 0
     st.session_state["delete_count"] = 0
     st.session_state["voice_flag"] = ""
     st.session_state["user_voice_value"] = ""
@@ -76,25 +75,25 @@ with st.sidebar:
 
 # 数据写入文件
 def write_data(new_chat_name=current_chat):
-    if "apikey" in st.secrets:
-        st.session_state["paras"] = {
-            "temperature": st.session_state["temperature" + current_chat],
-            "top_p": st.session_state["top_p" + current_chat],
-            "presence_penalty": st.session_state["presence_penalty" + current_chat],
-            "frequency_penalty": st.session_state["frequency_penalty" + current_chat],
-        }
-        st.session_state["contexts"] = {
-            "context_select": st.session_state["context_select" + current_chat],
-            "context_input": st.session_state["context_input" + current_chat],
-            "context_level": st.session_state["context_level" + current_chat],
-        }
-        save_data(
-            st.session_state["path"],
-            new_chat_name,
-            st.session_state["history" + current_chat],
-            st.session_state["paras"],
-            st.session_state["contexts"],
-        )
+    # if "apikey" in st.secrets:
+    #     st.session_state["paras"] = {
+    #         "temperature": st.session_state["temperature" + current_chat],
+    #         "top_p": st.session_state["top_p" + current_chat],
+    #         "presence_penalty": st.session_state["presence_penalty" + current_chat],
+    #         "frequency_penalty": st.session_state["frequency_penalty" + current_chat],
+    #     }
+    #     st.session_state["contexts"] = {
+    #         "context_select": st.session_state["context_select" + current_chat],
+    #         "context_input": st.session_state["context_input" + current_chat],
+    #         "context_level": st.session_state["context_level" + current_chat],
+    #     }
+    save_data(
+        st.session_state["path"],
+        new_chat_name,
+        st.session_state["history" + current_chat],
+        # st.session_state["paras"],
+        # st.session_state["contexts"],
+    )
 
 
 def reset_chat_name_fun(chat_name):
@@ -203,49 +202,12 @@ with container_show_messages:
     if st.session_state["history" + current_chat]:
         show_messages(current_chat, st.session_state["history" + current_chat])
 
-import streamlit.components.v1 as components
-
-modal = Modal(
-    "Demo Modal", 
-    key="demo-modal",
-    
-    # Optional
-    padding=20,    # default value
-    max_width=744  # default value
-)
-open_modal = st.button("Open")
-
-if modal.is_open():
-    with modal.container():
-        st.write("Text goes here")
-
-        html_string = '''
-        <h1>HTML string in RED</h1>
-
-        <script language="javascript">
-          document.querySelector("h1").style.color = "red";
-        </script>
-        '''
-        components.html(html_string)
-
-        st.write("Some fancy text")
-        value = st.checkbox("Check me")
-        st.write(f"Checkbox checked: {value}")
 # 核查是否有对话需要删除
 if any(st.session_state["frontend_msg_dict"].values()):
 
     print(st.session_state["frontend_msg_dict"].values())
 
     for key, value in st.session_state["frontend_msg_dict"].items():
-        try:
-            popup_ratings = value.get("popup_ratings")
-        except AttributeError:
-            popup_ratings = False
-        if popup_ratings == st.session_state["popup_count"]:
-            st.session_state["popup_count"] += 1
-            modal.open()
-            print("POPUP")
-
         try:
             ratings = value.get("ratings")
         except AttributeError:

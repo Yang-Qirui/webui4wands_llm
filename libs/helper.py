@@ -24,11 +24,11 @@ def get_history_chats(path: str) -> list:
     return chat_names
 
 
-def save_data(path: str, file_name: str, history: list, paras: dict, contexts: dict, **kwargs):
+def save_data(path: str, file_name: str, history: list, **kwargs):
     if not os.path.exists(path):
         os.makedirs(path)
     with open(f"./{path}/{file_name}.json", 'w', encoding='utf-8') as f:
-        json.dump({"history": history, "paras": paras, "contexts": contexts, **kwargs}, f, ensure_ascii=False, indent=2)
+        json.dump({"history": history, **kwargs}, f, ensure_ascii=False, indent=2)
 
 
 def remove_data(path: str, chat_name: str):

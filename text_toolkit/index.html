@@ -9,8 +9,12 @@
 <div class="main">
     <button id="copy-btn"><i class="fa-sharp fa-solid fa-paste"></i></button>
     <button id="delete-btn" style="display: none"><i class="fa-sharp fa-solid fa-trash"></i></button>
-
-    <button id="rate-btn" ><i class="fas fa-star"></i></button>
+    
+    <div class="star-rating" data-rating-type="correctness" title="Correctness"></div>
+    <div class="star-rating" data-rating-type="completeness" title="Completeness"></div>
+    <div class="star-rating" data-rating-type="relevance" title="Relevance"></div>
+    <div class="star-rating" data-rating-type="ethic" title="Ethic"></div>
+    <button id="rate-btn" ><i class="fas fa-check"></i></button>
 
     <span class="sound">
         <button class="btn-primary" id="play-btn" aria-label="播放"><i class="fas fa-volume-up"></i>

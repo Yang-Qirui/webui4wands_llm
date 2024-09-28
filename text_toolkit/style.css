@@ -94,33 +94,18 @@ i:hover {
 }
 
 /* 为不同类型的评分添加颜色区分（可选） */
-.star-rating[data-rating-type="fluency"] .star.active {
+.star-rating[data-rating-type="correctness"] .star.active {
     color: #4CAF50;
 }
 
-.star-rating[data-rating-type="usefulness"] .star.active {
+.star-rating[data-rating-type="completeness"] .star.active {
     color: #2196F3;
 }
 
-.star-rating[data-rating-type="safety"] .star.active {
+.star-rating[data-rating-type="relevance"] .star.active {
     color: #FF9800;
 }
 
-.modal {
-    display: none; 
-    position: fixed; 
-    z-index: 1; 
-    left: 0;
-    top: 0;
-    width: 100%; 
-    height: 100%; 
-    background-color: rgba(255, 0, 0, 0.4); 
+.star-rating[data-rating-type="ethic"] .star.active {
+    color: #f10a0a;
 }
-  
-.modal-content {
-    background-color: #fff;
-    margin: 15% auto;
-    padding: 20px;
-    border: 1px solid #888;
-    width: 80%;
- }
