@@ -22,8 +22,6 @@ st.set_page_config(
 )
 # 自定义元素样式
 st.markdown(css_code, unsafe_allow_html=True)
-modal = Modal("Test", key='Test')
-
 if "initial_settings" not in st.session_state:
     # 历史聊天窗口
     st.session_state["path"] = "history_chats_file"
@@ -31,12 +29,14 @@ if "initial_settings" not in st.session_state:
     # ss参数初始化
     st.session_state["frontend_msg_dict"] = {}
     st.session_state["ratings"] = {}
+    st.session_state["popup_count"] = 0
     st.session_state["delete_count"] = 0
     st.session_state["voice_flag"] = ""
     st.session_state["user_voice_value"] = ""
     st.session_state["error_info"] = ""
     st.session_state["current_chat_index"] = 0
     st.session_state["user_input_content"] = ""
+    
     # 读取全局设置
     if os.path.exists("./set.json"):
         with open("./set.json", "r", encoding="utf-8") as f:
@@ -203,73 +203,106 @@ with container_show_messages:
     if st.session_state["history" + current_chat]:
         show_messages(current_chat, st.session_state["history" + current_chat])
 
+import streamlit.components.v1 as components
+
+modal = Modal(
+    "Demo Modal", 
+    key="demo-modal",
+    
+    # Optional
+    padding=20,    # default value
+    max_width=744  # default value
+)
+open_modal = st.button("Open")
+
+if modal.is_open():
+    with modal.container():
+        st.write("Text goes here")
+
+        html_string = '''
+        <h1>HTML string in RED</h1>
+
+        <script language="javascript">
+          document.querySelector("h1").style.color = "red";
+        </script>
+        '''
+        components.html(html_string)
+
+        st.write("Some fancy text")
+        value = st.checkbox("Check me")
+        st.write(f"Checkbox checked: {value}")
 # 核查是否有对话需要删除
 if any(st.session_state["frontend_msg_dict"].values()):
 
-    print("frontend", st.session_state["frontend_msg_dict"].values())
-    
+    print(st.session_state["frontend_msg_dict"].values())
+
     for key, value in st.session_state["frontend_msg_dict"].items():
-        print("key", key, "value", value)
-        if 'clicked' in value.keys():
+        try:
+            popup_ratings = value.get("popup_ratings")
+        except AttributeError:
+            popup_ratings = False
+        if popup_ratings == st.session_state["popup_count"]:
+            st.session_state["popup_count"] += 1
             modal.open()
+            print("POPUP")
+
         try:
             ratings = value.get("ratings")
         except AttributeError:
             ratings = None
-        # if ratings:
-        #     select_keys = key
-        #     select_current_chat, idr = select_keys.split(">")
+        if ratings:
+            select_keys = key
+            select_current_chat, idr = select_keys.split(">")
 
-        #     print(idr, ratings)
+            print(idr, ratings)
 
-        #     df_history_tem = pd.DataFrame(
-        #         st.session_state["history" + select_current_chat]
-        #     )
+            df_history_tem = pd.DataFrame(
+                st.session_state["history" + select_current_chat]
+            )
 
-        #     assistant_mask = df_history_tem["role"] == "assistant"
-        #     assistant_indices = df_history_tem[assistant_mask].index
+            assistant_mask = df_history_tem["role"] == "assistant"
+            assistant_indices = df_history_tem[assistant_mask].index
 
-        #     if int(idr) < len(assistant_indices):
-        #         target_index = assistant_indices[int(idr)]
+            if int(idr) < len(assistant_indices):
+                target_index = assistant_indices[int(idr)]
 
-        #         if "ratings" not in df_history_tem.columns:
-        #             df_history_tem["ratings"] = None
+                if "ratings" not in df_history_tem.columns:
+                    df_history_tem["ratings"] = None
 
-        #         df_history_tem.at[target_index, "ratings"] = ratings
+                df_history_tem.at[target_index, "ratings"] = ratings
 
-        #     # 更新会话状态
-        #     st.session_state["history" + select_current_chat] = df_history_tem.to_dict("records")
-        #     write_data()
-        #     st.rerun()
-            
-        # else:
-        #     try:
-        #         deleteCount = value.get("deleteCount")
-        #     except AttributeError:
-        #         deleteCount = None
-        #     if deleteCount == st.session_state["delete_count"]:
-        #         delete_keys = key
-        #         st.session_state["delete_count"] = deleteCount + 1
-        #         delete_current_chat, idr = delete_keys.split(">")
-        #         df_history_tem = pd.DataFrame(
-        #             st.session_state["history" + delete_current_chat]
-        #         )
-        #         df_history_tem.drop(
-        #             index=df_history_tem.query("role=='user'").iloc[[int(idr)], :].index,
-        #             inplace=True,
-        #         )
-        #         df_history_tem.drop(
-        #             index=df_history_tem.query("role=='assistant'")
-        #             .iloc[[int(idr)], :]
-        #             .index,
-        #             inplace=True,
-        #         )
-        #         st.session_state["history" + delete_current_chat] = df_history_tem.to_dict(
-        #             "records"
-        #         )
-        #         write_data()
-        #         st.rerun()
+            # 更新会话状态
+            st.session_state["history" + select_current_chat] = df_history_tem.to_dict("records")
+            write_data()
+            st.rerun()
 
+        else:
+            try:
+                deleteCount = value.get("deleteCount")
+            except AttributeError:
+                deleteCount = None
+            if deleteCount == st.session_state["delete_count"]:
+                delete_keys = key
+                st.session_state["delete_count"] = deleteCount + 1
+                delete_current_chat, idr = delete_keys.split(">")
+                df_history_tem = pd.DataFrame(
+                    st.session_state["history" + delete_current_chat]
+                )
+                df_history_tem.drop(
+                    index=df_history_tem.query("role=='user'").iloc[[int(idr)], :].index,
+                    inplace=True,
+                )
+                df_history_tem.drop(
+                    index=df_history_tem.query("role=='assistant'")
+                    .iloc[[int(idr)], :]
+                    .index,
+                    inplace=True,
+                )
+                st.session_state["history" + delete_current_chat] = df_history_tem.to_dict(
+                    "records"
+                )
+                write_data()
+                st.rerun()
 
 def callback_fun(arg):
     # 连续快速点击新建与删除会触发错误回调，增加判断
@@ -323,6 +356,7 @@ area_error = st.empty()
 
 st.write("\n")
 st.header("Chatbot")
+
 
 # tap_input, tap_context, tap_model, tab_func = st.tabs(
 #     ["💬 聊天", "🗒️ 预设", "⚙️ 模型", "🛠️ 功能"]

@@ -96,8 +96,10 @@ def show_messages(current_chat: str, messages: list):
         if idr is not False:
             show_each_message(each["content"], each["role"], str(idr))
             if "open_text_toolkit_value" not in st.session_state or st.session_state["open_text_toolkit_value"]:
+                # st.session_state['frontend_msg_dict'][current_chat + ">" + str(idr)] = text_toolkit(
+                #     data_idr=str(idr) + '_' + each["role"], ratings=each.get("ratings", {}), clicked=each.get("clicked", {}))
                 st.session_state['frontend_msg_dict'][current_chat + ">" + str(idr)] = text_toolkit(
-                    data_idr=str(idr) + '_' + each["role"], ratings=each.get("ratings", {}), clicked=each.get("clicked", {}))
+                    data_idr=str(idr) + '_' + each["role"], ratings=each.get("ratings", {}))
                 # print(each.get("clicked", {}))
         if each["role"] == "assistant":
             st.write("---")

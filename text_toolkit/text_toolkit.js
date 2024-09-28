@@ -29,6 +29,7 @@ const stopBtn = document.getElementById("stop-btn");
 const speedSelect = document.getElementById('speed');
 const copyButton = document.getElementById('copy-btn');
 const deleteButton = document.getElementById('delete-btn');
+const rateBtn = document.getElementById('rate-btn');
 const synth = window.parent.speechSynthesis;
 let utterance = new SpeechSynthesisUtterance()
 let TIMEOUT_KEEP_SYNTHESIS_WORKING = null;
@@ -53,6 +54,12 @@ function onDataFromPython(event) {
     playBtn.setAttribute("data-idr", event.data.args.data_idr);
     if (event.data.args.data_idr.includes('assistant')) {
         deleteButton.style.display = 'inline-block';
+    }
+    if (event.data.args.data_idr.includes('user')) {
+        rateBtn.style.display = "none";
+        starRatings.forEach(ratingContainer => {
+            ratingContainer.style.display = "none";
+        });
     }
 
     // 处理评分数据
@@ -290,7 +297,6 @@ document.body.addEventListener("dblclick", function () {
 
 
 // 评分功能
-const rateBtn = document.getElementById('rate-btn');
 const starRatings = document.querySelectorAll('.star-rating');
 let currentRatings = {
     fluency: 0,
@@ -358,9 +364,10 @@ rateBtn.addEventListener('click', () => {
     sendDataToPython({
         "value":
         {
-            "clicked": true
+            "popup_ratings": window.parent.rateBtnCount,
         }
-    })
+    });
+    window.parent.rateBtnCount += 1
     // currentRatings = { fluency: 0, usefulness: 0, safety: 0 };
     // starRatings.forEach(container => updateStars(container, 0));
 });
