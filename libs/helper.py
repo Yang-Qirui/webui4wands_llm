@@ -25,6 +25,7 @@ def get_history_chats(path: str) -> list:
 
 
 def save_data(path: str, file_name: str, history: list, **kwargs):
+    print("save", path, file_name, history)
     if not os.path.exists(path):
         os.makedirs(path)
     with open(f"./{path}/{file_name}.json", 'w', encoding='utf-8') as f:
@@ -74,7 +75,7 @@ def show_each_message(message: str, role: str, idr: str, area=None):
         data_idr = idr + "_assistant"
         class_name = 'assistant'
     message = url_correction(message)
-    area[0](f"\n<div class='avatar'>{icon}<h2>{name}：</h2></div>", unsafe_allow_html=True)
+    area[0](f"\n<div class='avatar'>{icon}<h2>{name}:</h2></div>", unsafe_allow_html=True)
     area[1](
         f"""<div class='content-div {class_name}' data-idr='{data_idr}' style='background-color: {background_color};'>\n\n{message}""",
         unsafe_allow_html=True)

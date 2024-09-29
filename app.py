@@ -8,7 +8,6 @@ import openai
 from requests.models import ChunkedEncodingError
 from streamlit.components import v1
 from voice_toolkit import voice_toolkit
-from streamlit_modal import Modal
 
 if "apibase" in st.secrets:
     openai.api_base = st.secrets["apibase"]
@@ -106,15 +105,15 @@ def reset_chat_name_fun(chat_name):
     write_data(new_name)
     # 转移数据
     st.session_state["history" + new_name] = st.session_state["history" + current_chat]
-    for item in [
-        "context_select",
-        "context_input",
-        "context_level",
-        *initial_content_all["paras"],
-    ]:
-        st.session_state[item + new_name + "value"] = st.session_state[
-            item + current_chat + "value"
-        ]
+    # for item in [
+    #     "context_select",
+    #     "context_input",
+    #     "context_level",
+    #     *initial_content_all["paras"],
+    # ]:
+    #     st.session_state[item + new_name + "value"] = st.session_state[
+    #         item + current_chat + "value"
+    #     ]
     remove_data(st.session_state["path"], current_chat)
 
 
@@ -204,8 +203,6 @@ with container_show_messages:
 
 # 核查是否有对话需要删除
 if any(st.session_state["frontend_msg_dict"].values()):
-
-    print(st.session_state["frontend_msg_dict"].values())
 
     for key, value in st.session_state["frontend_msg_dict"].items():
         try:
@@ -501,7 +498,7 @@ with st.empty():
     if submitted:
         st.session_state["user_input_content"] = user_input
         st.session_state["user_voice_value"] = ""
-        st.rerun()
+        # st.rerun()
 
     if "open_voice_toolkit_value" not in st.session_state:
         st.session_state["open_voice_toolkit_value"] = False
@@ -558,24 +555,38 @@ if st.session_state["user_input_content"] != "":
         [area_user_svg.markdown, area_user_content.markdown],
     )
     # 模型输入
-    history_need_input, paras_need_input = get_model_input()
+    # history_need_input, paras_need_input = get_model_input()
     # 调用接口
     with st.spinner("🤔"):
         try:
-            if apikey := st.session_state["apikey_input"]:
-                openai.api_key = apikey
-            # 配置临时apikey，此时不会留存聊天记录，适合公开使用
-            elif "apikey_tem" in st.secrets:
-                openai.api_key = st.secrets["apikey_tem"]
-            # 注：当st.secrets中配置apikey后将会留存聊天记录，即使未使用此apikey
-            else:
-                openai.api_key = st.secrets["apikey"]
-            r = openai.ChatCompletion.create(
-                model=st.session_state["select_model"],
-                messages=history_need_input,
-                stream=True,
-                **paras_need_input,
+            # if apikey := st.session_state["apikey_input"]:
+            #     openai.api_key = apikey
+            # # 配置临时apikey，此时不会留存聊天记录，适合公开使用
+            # elif "apikey_tem" in st.secrets:
+            #     openai.api_key = st.secrets["apikey_tem"]
+            # # 注：当st.secrets中配置apikey后将会留存聊天记录，即使未使用此apikey
+            # else:
+            #     openai.api_key = st.secrets["apikey"]
+            # r = openai.ChatCompletion.create(
+            #     model=st.session_state["select_model"],
+            #     messages=history_need_input,
+            #     stream=True,
+            #     **paras_need_input,
+            # )
+            r = openai.OpenAI(api_key="sk-cZGVYbrtzHioWWbAA972Dd55Ae2d45B2A71f3a005eBbDfEa", base_url="https://api.bltcy.ai/v1").chat.completions.create(
+                # model=self.model_name,
+                model="gpt-4o-mini",
+                # prompt=self.tokenizer.decode(tokenized_chat[0]),
+                # tools=self.func_desc,
+                # tool_choice="auto",
+                messages=[
+                    # {"role": "system", "content": sys_prompt},
+                    {"role": "user", "content": "Introduce Joe Biden to me"},
+                ],
+                max_tokens=500,
+                stream=True
             )
+            # print(r.choices[0].message.model_dump_json())
         except (FileNotFoundError, KeyError):
             area_error.error(
                 "缺失 OpenAI API Key，请在复制项目后配置Secrets，或者在模型选项中进行临时配置。"
@@ -592,34 +603,37 @@ if st.session_state["user_input_content"] != "":
         else:
             st.session_state["chat_of_r"] = current_chat
             st.session_state["r"] = r
+            print("e1", st.session_state["r"])
             st.rerun()
 
 if ("r" in st.session_state) and (current_chat == st.session_state["chat_of_r"]):
     if current_chat + "report" not in st.session_state:
         st.session_state[current_chat + "report"] = ""
     try:
-        for e in st.session_state["r"]:
-            if "content" in e["choices"][0]["delta"]:
-                st.session_state[current_chat + "report"] += e["choices"][0]["delta"][
-                    "content"
-                ]
-                show_each_message(
-                    st.session_state["pre_user_input_content"],
-                    "user",
-                    "tem",
-                    [area_user_svg.markdown, area_user_content.markdown],
-                )
-                show_each_message(
-                    st.session_state[current_chat + "report"],
-                    "assistant",
-                    "tem",
-                    [area_gpt_svg.markdown, area_gpt_content.markdown],
-                )
+        for chunk in st.session_state["r"]:
+            if hasattr(chunk, "choices"):
+                delta = chunk.choices[0].delta
+                if hasattr(delta, "content") and delta.content:
+                    st.session_state[current_chat + "report"] += delta.content
+                    print(st.session_state[current_chat + "report"])
+                    show_each_message(
+                        st.session_state["pre_user_input_content"],
+                        "user",
+                        "tem",
+                        [area_user_svg.markdown, area_user_content.markdown],
+                    )
+                    show_each_message(
+                        st.session_state[current_chat + "report"],
+                        "assistant",
+                        "tem",
+                        [area_gpt_svg.markdown, area_gpt_content.markdown],
+                    )
     except ChunkedEncodingError:
         area_error.error("网络状况不佳，请刷新页面重试。")
     # 应对stop情形
-    except Exception:
-        pass
+    except Exception as e:
+        area_error.error("ERROR")
+        print(e)
     else:
         # 保存内容
         st.session_state["history" + current_chat].append(
