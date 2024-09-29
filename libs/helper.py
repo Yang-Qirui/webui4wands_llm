@@ -8,6 +8,7 @@ from .custom import *
 import copy
 import io
 from text_toolkit import text_toolkit
+import markdown
 
 
 def get_history_chats(path: str) -> list:
@@ -77,8 +78,13 @@ def show_each_message(message: str, role: str, idr: str, area=None):
     message = url_correction(message)
     area[0](f"\n<div class='avatar'>{icon}<h2>{name}:</h2></div>", unsafe_allow_html=True)
     area[1](
-        f"""<div class='content-div {class_name}' data-idr='{data_idr}' style='background-color: {background_color};'>\n\n{message}""",
-        unsafe_allow_html=True)
+    f"""<div class='content-div {class_name}' data-idr='{data_idr}' style='background-color: {background_color};'>\n\n{message}""",
+    unsafe_allow_html=True)
+
+def show_spin_message(area):
+    icon = gpt_svg
+    name = gpt_name
+    area(f"\n<div class='avatar'>{icon}<h2>{name}:</h2></div>", unsafe_allow_html=True)
 
 
 def show_messages(current_chat: str, messages: list):

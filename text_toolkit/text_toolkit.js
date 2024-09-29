@@ -38,34 +38,41 @@ let IGNORE_CODE_BLOCKS = true;
 let iframes = window.parent.document.querySelectorAll('iframe');
 window.parent.textSound = []
 iframes.forEach(iframe => {
-    let btn = iframe.contentDocument.querySelector('.sound')
-    let recordBtn = iframe.contentDocument.querySelector('button#record-btn')
-    if (btn) {
-        window.parent.textSound.push(btn)
-    }
-    if (recordBtn) {
-        window.parent.recordBtn = recordBtn;
-    }
-})
-
+    iframe.addEventListener('load', () => {
+        let btn = iframe.contentDocument?.querySelector('.sound');
+        let recordBtn = iframe.contentDocument?.querySelector('button#record-btn');
+        
+        if (btn) {
+            window.parent.textSound.push(btn);
+        }
+        if (recordBtn) {
+            window.parent.recordBtn = recordBtn;
+        }
+    });
+});
 
 // 接收来自Python的参数
 function onDataFromPython(event) {
-    playBtn.setAttribute("data-idr", event.data.args.data_idr);
-    if (event.data.args.data_idr.includes('assistant')) {
-        deleteButton.style.display = 'inline-block';
-    }
-    if (event.data.args.data_idr.includes('user')) {
-        rateBtn.style.display = "none";
-        starRatings.forEach(ratingContainer => {
-            ratingContainer.style.display = "none";
-        });
-    }
+    const dataIdr = event?.data?.args?.data_idr;
 
-    // 处理评分数据
-    if (event.data.args.ratings) {
-        const ratings = event.data.args.ratings;
-        setRatings(ratings);
+    if (dataIdr) {
+        playBtn.setAttribute("data-idr", dataIdr);
+
+        if (dataIdr.includes('assistant')) {
+            deleteButton.style.display = 'inline-block';
+        }
+        if (dataIdr.includes('user')) {
+            rateBtn.style.display = "none";
+            starRatings.forEach(ratingContainer => {
+                ratingContainer.style.display = "none";
+            });
+        }
+
+        // Handle ratings data
+        const ratings = event?.data?.args?.ratings;
+        if (ratings) {
+            setRatings(ratings);
+        }
     }
 }
 
@@ -255,6 +262,7 @@ checkChatButton()
 copyButton.addEventListener('click', () => {
     let data_idr = playBtn.getAttribute("data-idr")
     let text = window.parent.document.querySelector(`div[data-idr="${data_idr}"]`).innerText
+    console.log(text)
     navigator.clipboard.writeText(text)
         // .then(() => {
         //     // copyTips.classList.add('copy-success');

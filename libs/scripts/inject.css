@@ -54,6 +54,7 @@ section.main > div {
 	margin-bottom: 8px;
 	margin-top: 8px;
 	margin-left: -8px;
+	margin-right: 8px;
 }
 
 .icon-text-container img {
@@ -63,10 +64,10 @@ section.main > div {
 }
 
 .icon-text-container span {
-	text-shadow: 2px 2px #ccc;
+	/* text-shadow: 2px 2px #ccc; */
 	font-size: 28px !important;
-	font-family: "微软雅黑", "auto";
-	font-weight: 500 !important;
+	/* font-family: "微软雅黑", "auto"; */
+	font-weight: 800 !important;
 }
 
 hr {
@@ -83,8 +84,13 @@ hr {
 }
 
 .avatar svg {
-	width: 20px;
-	height: 20px;
+	width: 40px;
+	height: 40px;
+}
+
+.avatar img {
+	width: 40px;
+	height: 40px;
 }
 
 .avatar h2 {

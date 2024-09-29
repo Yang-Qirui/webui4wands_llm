@@ -8,6 +8,7 @@ import openai
 from requests.models import ChunkedEncodingError
 from streamlit.components import v1
 from voice_toolkit import voice_toolkit
+import requests
 
 if "apibase" in st.secrets:
     openai.api_base = st.secrets["apibase"]
@@ -15,7 +16,7 @@ else:
     openai.api_base = "https://api.openai.com/v1"
 
 st.set_page_config(
-    page_title="chatbot",
+    page_title="UniMate",
     layout="wide",
     page_icon=ICON,
 )
@@ -46,16 +47,8 @@ if "initial_settings" not in st.session_state:
     
 
 with st.sidebar:
-    icon_text = f"""
-    <div class="icon-text-container">
-        <img src='data:image/png;base64,{ICON_base64}' alt='icon'>
-        <span style='font-size: 24px;'>Chat History</span>
-    </div>
-    """
-    st.markdown(
-        icon_text,
-        unsafe_allow_html=True,
-    )
+    st.markdown(wands_svg,unsafe_allow_html=True)
+    st.header("Chat History")
     # 创建容器的目的是配合自定义组件的监听操作
     chat_container = st.container()
     with chat_container:
@@ -314,13 +307,18 @@ area_gpt_content = st.empty()
 area_error = st.empty()
 
 st.write("\n")
-st.header("Chatbot")
+icon_text = f"""
+    <div class="icon-text-container">
+        <img src='data:image/png;base64,{ICON_base64}' alt='icon'>
+        <span style='font-size: 24px; padding-left: 10px;'>Chat with UniMate</span>
+    </div>
+    """
+st.markdown(icon_text, unsafe_allow_html=True)
 
 
 # tap_input, tap_context, tap_model, tab_func = st.tabs(
 #     ["💬 聊天", "🗒️ 预设", "⚙️ 模型", "🛠️ 功能"]
 # )
-
 # tap_input= st.tabs(
 #     ["💬 聊天"]
 # )
@@ -339,7 +337,6 @@ st.header("Chatbot")
 #         args=("context_select",),
 #     )
 #     st.caption(set_context_all[st.session_state["context_select" + current_chat]])
-
 #     st.text_area(
 #         label="补充或自定义提示语：",
 #         key="context_input" + current_chat,
@@ -347,7 +344,6 @@ st.header("Chatbot")
 #         on_change=callback_fun,
 #         args=("context_input",),
 #     )
-
 # with tap_model:
 #     st.markdown("OpenAI API Key (可选)")
 #     st.text_input(
@@ -359,7 +355,6 @@ st.header("Chatbot")
 #     st.caption(
 #         "此Key仅在当前网页有效，优先级高于Secrets中的配置。[官网获取](https://platform.openai.com/account/api-keys)"
 #     )
-
 #     st.slider(
 #         "Context Level",
 #         0,
@@ -371,7 +366,6 @@ st.header("Chatbot")
 #         args=("context_level",),
 #         help="表示每次会话中包含的历史对话次数，预设内容不计算在内。",
 #     )
-
 #     with st.expander("模型参数："):
 #         st.slider(
 #             "Temperature",
@@ -422,7 +416,6 @@ st.header("Chatbot")
 #         st.caption(
 #             "[官网参数说明](https://platform.openai.com/docs/api-reference/completions/create)"
 #         )
-
 # with tab_func:
 #     c1, c2, c3 = st.columns(3)
 #     with c1:
@@ -471,8 +464,8 @@ st.header("Chatbot")
 #             on_change=save_set,
 #             args=("open_voice_toolkit",),
 #         )
-
-with st.empty():
+input_placeholder = st.empty()
+with input_placeholder.container():
 
     def input_callback():
         if st.session_state["user_input_area"] != "":
@@ -487,9 +480,7 @@ with st.empty():
         user_input = st.text_area(
             "**Input:**",
             key="user_input_area",
-            help="内容将以Markdown格式在页面展示，建议遵循相关语言规范，同样有利于GPT正确读取，例如："
-            "\n- 代码块写在三个反引号内，并标注语言类型"
-            "\n- 以英文冒号开头的内容或者正则表达式等写在单反引号内",
+            help=ETHIC_CODE,
             value=st.session_state["user_voice_value"],
         )
         submitted = st.form_submit_button(
@@ -518,29 +509,6 @@ with st.empty():
                 st.session_state["voice_flag"] = "final"
                 st.rerun()
 
-
-def get_model_input():
-    # 需输入的历史记录
-    context_level = st.session_state["context_level" + current_chat]
-    history = get_history_input(
-        st.session_state["history" + current_chat], context_level
-    ) + [{"role": "user", "content": st.session_state["pre_user_input_content"]}]
-    for ctx in [
-        st.session_state["context_input" + current_chat],
-        set_context_all[st.session_state["context_select" + current_chat]],
-    ]:
-        if ctx != "":
-            history = [{"role": "system", "content": ctx}] + history
-    # 设定的模型参数
-    paras = {
-        "temperature": st.session_state["temperature" + current_chat],
-        "top_p": st.session_state["top_p" + current_chat],
-        "presence_penalty": st.session_state["presence_penalty" + current_chat],
-        "frequency_penalty": st.session_state["frequency_penalty" + current_chat],
-    }
-    return history, paras
-
-
 if st.session_state["user_input_content"] != "":
     if "r" in st.session_state:
         st.session_state.pop("r")
@@ -554,74 +522,81 @@ if st.session_state["user_input_content"] != "":
         "tem",
         [area_user_svg.markdown, area_user_content.markdown],
     )
-    # 模型输入
-    # history_need_input, paras_need_input = get_model_input()
+    st.session_state["history" + current_chat].append(
+            {"role": "user", "content": st.session_state["pre_user_input_content"]}
+        )
+    write_data()
+    # show_each_message(
+    #     "Thinking...",
+    #     "assistant",
+    #     "tem",
+    #     [area_gpt_svg.markdown, area_gpt_content.markdown],
+    # )
+    show_spin_message(area_gpt_svg.markdown)
     # 调用接口
-    with st.spinner("🤔"):
-        try:
-            # if apikey := st.session_state["apikey_input"]:
-            #     openai.api_key = apikey
-            # # 配置临时apikey，此时不会留存聊天记录，适合公开使用
-            # elif "apikey_tem" in st.secrets:
-            #     openai.api_key = st.secrets["apikey_tem"]
-            # # 注：当st.secrets中配置apikey后将会留存聊天记录，即使未使用此apikey
-            # else:
-            #     openai.api_key = st.secrets["apikey"]
-            # r = openai.ChatCompletion.create(
-            #     model=st.session_state["select_model"],
-            #     messages=history_need_input,
-            #     stream=True,
-            #     **paras_need_input,
-            # )
-            r = openai.OpenAI(api_key="sk-cZGVYbrtzHioWWbAA972Dd55Ae2d45B2A71f3a005eBbDfEa", base_url="https://api.bltcy.ai/v1").chat.completions.create(
-                # model=self.model_name,
-                model="gpt-4o-mini",
-                # prompt=self.tokenizer.decode(tokenized_chat[0]),
-                # tools=self.func_desc,
-                # tool_choice="auto",
-                messages=[
-                    # {"role": "system", "content": sys_prompt},
-                    {"role": "user", "content": "Introduce Joe Biden to me"},
-                ],
-                max_tokens=500,
-                stream=True
-            )
-            # print(r.choices[0].message.model_dump_json())
-        except (FileNotFoundError, KeyError):
-            area_error.error(
-                "缺失 OpenAI API Key，请在复制项目后配置Secrets，或者在模型选项中进行临时配置。"
-                "详情见[项目仓库](https://github.com/PierXuY/ChatGPT-Assistant)。"
-            )
-        except openai.error.AuthenticationError:
-            area_error.error("无效的 OpenAI API Key。")
-        except openai.error.APIConnectionError as e:
-            area_error.error("连接超时，请重试。报错：   \n" + str(e.args[0]))
-        except openai.error.InvalidRequestError as e:
-            area_error.error("无效的请求，请重试。报错：   \n" + str(e.args[0]))
-        except openai.error.RateLimitError as e:
-            area_error.error("请求受限。报错：   \n" + str(e.args[0]))
-        else:
-            st.session_state["chat_of_r"] = current_chat
-            st.session_state["r"] = r
-            print("e1", st.session_state["r"])
-            st.rerun()
+    with area_gpt_content.container():
+        with st.spinner("🤔Thinking..."):
+            try:
+                max_try = 3
+                try_cnt = 0
+                while try_cnt < max_try:
+                    r = requests.post("http://127.0.0.1:5000", data=st.session_state["pre_user_input_content"], stream=True)
+                    if r.status_code == 200:
+                        break
+                    try_cnt += 1
+                if try_cnt == max_try:
+                    r = "Sorry, due to internal error, this question is beyond my capability."
+                # print(r.choices[0].message.model_dump_json())
+            except (FileNotFoundError, KeyError):
+                area_error.error(
+                    "Timeout"
+                )
+            except openai.error.AuthenticationError:
+                area_error.error("无效的 OpenAI API Key。")
+            except openai.error.APIConnectionError as e:
+                area_error.error("连接超时，请重试。报错：   \n" + str(e.args[0]))
+            except openai.error.InvalidRequestError as e:
+                area_error.error("无效的请求，请重试。报错：   \n" + str(e.args[0]))
+            except openai.error.RateLimitError as e:
+                area_error.error("请求受限。报错：   \n" + str(e.args[0]))
+            else:
+                st.session_state["chat_of_r"] = current_chat
+                st.session_state["r"] = r
+                print("e1", st.session_state["r"])
+                st.rerun()
 
 if ("r" in st.session_state) and (current_chat == st.session_state["chat_of_r"]):
     if current_chat + "report" not in st.session_state:
         st.session_state[current_chat + "report"] = ""
     try:
-        for chunk in st.session_state["r"]:
-            if hasattr(chunk, "choices"):
-                delta = chunk.choices[0].delta
-                if hasattr(delta, "content") and delta.content:
-                    st.session_state[current_chat + "report"] += delta.content
-                    print(st.session_state[current_chat + "report"])
-                    show_each_message(
-                        st.session_state["pre_user_input_content"],
-                        "user",
-                        "tem",
-                        [area_user_svg.markdown, area_user_content.markdown],
-                    )
+        if type(st.session_state["r"]) == str:
+            st.session_state[current_chat + "report"] = st.session_state["r"]
+            # show_each_message(
+            #             st.session_state["pre_user_input_content"],
+            #             "user",
+            #             "tem",
+            #             [area_user_svg.markdown, area_user_content.markdown],
+            #         )
+            show_each_message(
+                st.session_state[current_chat + "report"],
+                "assistant",
+                "tem",
+                [area_gpt_svg.markdown, area_gpt_content.markdown],
+            )
+        else:
+            for chunk in st.session_state["r"].iter_lines(decode_unicode=True):
+                print("Receiving", chunk)
+                if chunk:
+                    # chunk = chunk.replace("\n", "<br/>")
+                    # print("CHUNK", chunk)
+                    st.session_state[current_chat + "report"] += chunk
+                    
+                    # show_each_message(
+                    #     st.session_state["pre_user_input_content"],
+                    #     "user",
+                    #     "tem",
+                    #     [area_user_svg.markdown, area_user_content.markdown],
+                    # )
                     show_each_message(
                         st.session_state[current_chat + "report"],
                         "assistant",
@@ -636,9 +611,9 @@ if ("r" in st.session_state) and (current_chat == st.session_state["chat_of_r"])
         print(e)
     else:
         # 保存内容
-        st.session_state["history" + current_chat].append(
-            {"role": "user", "content": st.session_state["pre_user_input_content"]}
-        )
+        # st.session_state["history" + current_chat].append(
+        #     {"role": "user", "content": st.session_state["pre_user_input_content"]}
+        # )
         st.session_state["history" + current_chat].append(
             {"role": "assistant", "content": st.session_state[current_chat + "report"]}
         )
