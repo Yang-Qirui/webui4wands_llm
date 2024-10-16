@@ -1,5 +1,4 @@
 import os.path
-
 from libs.helper import *
 import streamlit as st
 import uuid
@@ -10,10 +9,10 @@ from streamlit.components import v1
 from voice_toolkit import voice_toolkit
 import requests
 
-if "apibase" in st.secrets:
-    openai.api_base = st.secrets["apibase"]
-else:
-    openai.api_base = "https://api.openai.com/v1"
+# if "apibase" in st.secrets:
+#     openai.api_base = st.secrets["apibase"]
+# else:
+#     openai.api_base = "https://api.openai.com/v1"
 
 st.set_page_config(
     page_title="UniMate",
@@ -540,7 +539,10 @@ if st.session_state["user_input_content"] != "":
                 max_try = 3
                 try_cnt = 0
                 while try_cnt < max_try:
-                    r = requests.post("http://127.0.0.1:5000", data=st.session_state["pre_user_input_content"], stream=True)
+                    r = requests.post("http://127.0.0.1:5000/query",
+                                      headers={"Content-Type": "application/json"},
+                                      data=json.dumps({"query": st.session_state["pre_user_input_content"]}),
+                                      stream=True)
                     if r.status_code == 200:
                         break
                     try_cnt += 1
