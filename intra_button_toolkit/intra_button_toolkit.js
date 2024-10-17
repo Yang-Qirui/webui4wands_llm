@@ -11,9 +11,41 @@ function init() {
     sendMessageToStreamlitClient("streamlit:componentReady", {apiVersion: 1});
 }
 
+function setFrameHeight(height) {
+    sendMessageToStreamlitClient("streamlit:setFrameHeight", {height: height});
+}
+
 function sendDataToPython(data) {
     sendMessageToStreamlitClient("streamlit:setComponentValue", data);
 }
+
+function onDataFromPython(event){
+    const button_names = event?.data?.args?.button_names;
+    if(button_names) {
+        // Add Buttons to Main Div
+        let main_div = document.querySelector('.main');
+        let existing_buttons = main_div.querySelectorAll('.intra-button');
+        let buttons_name = []
+        existing_buttons.forEach(btn => {
+            buttons_name.push(btn.getAttribute('node_name'));
+        });
+        button_names.forEach(item => {
+            if(buttons_name.indexOf(item) === -1) {
+                let new_button = document.createElement('button');
+                new_button.innerText = item;
+                new_button.className = "intra-button";
+                new_button.setAttribute('node_name', item);
+                new_button.style.display = "inline-box";
+                new_button.addEventListener('click', () => {
+                    sendDataOnClick(new_button);
+                })
+                main_div.appendChild(new_button);
+            }
+        });
+    }
+}
+
+window.addEventListener("message", onDataFromPython, false);
 
 function sendData(query) {
     const dataToSend = { "query":  "[BUTTON]" + query}; // 要发送的字符串
@@ -40,14 +72,12 @@ function sendData(query) {
 }
 
 init()
+function sendDataOnClick(button){
+    const param = button.getAttribute('node_name');
+    sendData(param);
+    // TODO Hide all buttons
+}
 
-let intra_buttons = window.parent.document.querySelectorAll('.intra-button');
-intra_buttons.forEach(button => {
-    button.addEventListener('click', () => {
-        const param = button.getAttribute('node_name');
-        sendData(param);
-        intra_buttons.forEach(btn => {
-            btn.style.display = 'none';  // This hides the button
-        });
-    });
+window.addEventListener("DOMContentLoaded", function () {
+    setFrameHeight(40);
 });

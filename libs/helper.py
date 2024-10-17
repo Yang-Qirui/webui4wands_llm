@@ -62,6 +62,7 @@ def load_data(path: str, file_name: str) -> dict:
 
 
 def show_each_message(message: str, role: str, idr: str, area=None, buttons=None):
+
     if area is None:
         area = [st.markdown] * 2
     if role == 'user':
@@ -76,11 +77,6 @@ def show_each_message(message: str, role: str, idr: str, area=None, buttons=None
         background_color = gpt_background_color
         data_idr = idr + "_assistant"
         class_name = 'assistant'
-    if buttons:
-        btn_code = ""
-        for btn_name in buttons:
-            btn_code += f"<button class='intra-button' node_name='{btn_name}'>{btn_name}</button>"
-        btn_block_code = f"<div>{btn_code}</div>"
         
     message = url_correction(message)
     area[0](f"\n<div class='avatar'>{icon}<h2>{name}:</h2></div>", unsafe_allow_html=True)
@@ -97,9 +93,9 @@ def show_each_message(message: str, role: str, idr: str, area=None, buttons=None
         else:
             head = False
         generate_html += (div_template + message)
-    if buttons:
-        generate_html += btn_block_code
     area[1](generate_html, unsafe_allow_html=True)
+    if buttons:
+        st.session_state["jump_msg_dict"] = intra_button_toolkit(button_names=buttons)
 
 def show_spin_message(area):
     icon = gpt_svg

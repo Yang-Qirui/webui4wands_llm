@@ -175,14 +175,6 @@ with container_show_messages:
 
 
 # 核查是否有对话需要删除
-st.session_state["jump_msg_dict"] = intra_button_toolkit()
-print(st.session_state["jump_msg_dict"])
-if st.session_state["jump_msg_dict"]:
-    jump_msg_dict = st.session_state["jump_msg_dict"]
-    st.session_state["user_query_from_button"] = jump_msg_dict["user_query_from_button"]
-    st.session_state["button_response"] = jump_msg_dict["button_response"]
-    st.session_state["jump_msg_dict"] = None
-
 if any(st.session_state["frontend_msg_dict"].values()):
     for key, value in st.session_state["frontend_msg_dict"].items():
         try:
@@ -435,6 +427,7 @@ if ("r" in st.session_state) and (current_chat == st.session_state["chat_of_r"])
         st.session_state.pop("r")
         st.rerun()
 
+
 if st.session_state["user_query_from_button"] and st.session_state["button_response"]:
     show_each_message(
         st.session_state["user_query_from_button"],
@@ -460,6 +453,13 @@ if st.session_state["user_query_from_button"] and st.session_state["button_respo
     write_data()
     st.session_state["user_query_from_button"] = None
     st.session_state["button_response"] = None
+
+# print(st.session_state["jump_msg_dict"])
+if st.session_state["jump_msg_dict"]:
+    jump_msg_dict = st.session_state["jump_msg_dict"]
+    st.session_state["user_query_from_button"] = jump_msg_dict["user_query_from_button"]
+    st.session_state["button_response"] = jump_msg_dict["button_response"]
+    st.session_state["jump_msg_dict"] = None
     
 
 v1.html(js_code, height=0)
