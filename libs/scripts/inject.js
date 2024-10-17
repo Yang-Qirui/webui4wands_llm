@@ -134,6 +134,4 @@ function checkElements() {
     }
 }
 
-
-
 checkElements()

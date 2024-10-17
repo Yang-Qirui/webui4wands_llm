@@ -8,11 +8,13 @@ from requests.models import ChunkedEncodingError
 from streamlit.components import v1
 from voice_toolkit import voice_toolkit
 import requests
+import ast
 
-# if "apibase" in st.secrets:
-#     openai.api_base = st.secrets["apibase"]
-# else:
-#     openai.api_base = "https://api.openai.com/v1"
+LOCAL_HOST = "http://127.0.0.1:5000"
+if "apibase" in st.secrets:
+    openai.api_base = st.secrets["apibase"]
+else:
+    openai.api_base = "https://api.openai.com/v1"
 
 st.set_page_config(
     page_title="UniMate",
@@ -27,6 +29,7 @@ if "initial_settings" not in st.session_state:
     st.session_state["history_chats"] = get_history_chats(st.session_state["path"])
     # ss参数初始化
     st.session_state["frontend_msg_dict"] = {}
+    st.session_state["jump_msg_dict"] = {}
     st.session_state["ratings"] = {}
     st.session_state["delete_count"] = 0
     st.session_state["voice_flag"] = ""
@@ -34,6 +37,9 @@ if "initial_settings" not in st.session_state:
     st.session_state["error_info"] = ""
     st.session_state["current_chat_index"] = 0
     st.session_state["user_input_content"] = ""
+    st.session_state["option_nodes"] = None
+    st.session_state["user_query_from_button"] = None
+    st.session_state["button_response"] = None
     
     # 读取全局设置
     if os.path.exists("./set.json"):
@@ -42,9 +48,8 @@ if "initial_settings" not in st.session_state:
         for key, value in data_set.items():
             st.session_state[key] = value
     # 设置完成
-    st.session_state["initial_settings"] = True
-    
-
+    st.session_state["initial_settings"] = True        
+        
 with st.sidebar:
     st.markdown(wands_svg,unsafe_allow_html=True)
     st.header("Chat History")
@@ -63,27 +68,12 @@ with st.sidebar:
         )
     st.write("---")
 
-
 # 数据写入文件
 def write_data(new_chat_name=current_chat):
-    # if "apikey" in st.secrets:
-    #     st.session_state["paras"] = {
-    #         "temperature": st.session_state["temperature" + current_chat],
-    #         "top_p": st.session_state["top_p" + current_chat],
-    #         "presence_penalty": st.session_state["presence_penalty" + current_chat],
-    #         "frequency_penalty": st.session_state["frequency_penalty" + current_chat],
-    #     }
-    #     st.session_state["contexts"] = {
-    #         "context_select": st.session_state["context_select" + current_chat],
-    #         "context_input": st.session_state["context_input" + current_chat],
-    #         "context_level": st.session_state["context_level" + current_chat],
-    #     }
     save_data(
         st.session_state["path"],
         new_chat_name,
-        st.session_state["history" + current_chat],
-        # st.session_state["paras"],
-        # st.session_state["contexts"],
+        st.session_state["history" + current_chat]
     )
 
 
@@ -97,15 +87,6 @@ def reset_chat_name_fun(chat_name):
     write_data(new_name)
     # 转移数据
     st.session_state["history" + new_name] = st.session_state["history" + current_chat]
-    # for item in [
-    #     "context_select",
-    #     "context_input",
-    #     "context_level",
-    #     *initial_content_all["paras"],
-    # ]:
-    #     st.session_state[item + new_name + "value"] = st.session_state[
-    #         item + current_chat + "value"
-    #     ]
     remove_data(st.session_state["path"], current_chat)
 
 
@@ -157,24 +138,12 @@ with st.sidebar:
 
     st.write("\n")
     st.text_input("Set Chat Name", key="set_chat_name", placeholder="Click to input")
-    # st.selectbox(
-    #     "选择模型：",
-    #     index=0,
-    #     options=["glm-4-flash", "qwen2.5-72b-instruct", "gpt-4o-mini"],
-    #     key="select_model",
-    # )
     st.caption(
         """
     - Double-click or press "/" to position the input field
     - Ctrl + Enter for quick submission
     """
     )
-    # st.markdown(
-    #     '<a href="https://github.com/PierXuY/ChatGPT-Assistant" target="_blank" rel="ChatGPT-Assistant">'
-    #     '<img src="https://badgen.net/badge/icon/GitHub?icon=github&amp;label=ChatGPT Assistant" alt="GitHub">'
-    #     "</a>",
-    #     unsafe_allow_html=True,
-    # )
 
 # 加载数据
 if "history" + current_chat not in st.session_state:
@@ -189,13 +158,32 @@ if "history" + current_chat not in st.session_state:
 container_show_messages = st.container()
 container_show_messages.write("")
 # 对话展示
+if not st.session_state["history" + current_chat]:
+    try:
+        response = requests.post(LOCAL_HOST + "/query", json={"query": ""}, headers={"Content-Type": "application/json"})
+        candidate_options = requests.get(LOCAL_HOST + "/get-options")
+        candidate_options = ast.literal_eval(candidate_options.text)
+        st.session_state["history" + current_chat].append({"role": "assistant", "content": response.text, "button": candidate_options})
+        st.session_state["option_nodes"] = candidate_options
+    except Exception as e:
+        st.session_state["history" + current_chat].append({"role": "assistant", "content": str(e), "button": candidate_options})
+
+        
 with container_show_messages:
     if st.session_state["history" + current_chat]:
         show_messages(current_chat, st.session_state["history" + current_chat])
 
-# 核查是否有对话需要删除
-if any(st.session_state["frontend_msg_dict"].values()):
 
+# 核查是否有对话需要删除
+st.session_state["jump_msg_dict"] = intra_button_toolkit()
+print(st.session_state["jump_msg_dict"])
+if st.session_state["jump_msg_dict"]:
+    jump_msg_dict = st.session_state["jump_msg_dict"]
+    st.session_state["user_query_from_button"] = jump_msg_dict["user_query_from_button"]
+    st.session_state["button_response"] = jump_msg_dict["button_response"]
+    st.session_state["jump_msg_dict"] = None
+
+if any(st.session_state["frontend_msg_dict"].values()):
     for key, value in st.session_state["frontend_msg_dict"].items():
         try:
             ratings = value.get("ratings")
@@ -204,8 +192,6 @@ if any(st.session_state["frontend_msg_dict"].values()):
         if ratings:
             select_keys = key
             select_current_chat, idr = select_keys.split(">")
-
-            print(idr, ratings)
 
             df_history_tem = pd.DataFrame(
                 st.session_state["history" + select_current_chat]
@@ -302,6 +288,7 @@ area_user_content = st.empty()
 # 回复展示
 area_gpt_svg = st.empty()
 area_gpt_content = st.empty()
+area_btn = st.empty()
 # 报错展示
 area_error = st.empty()
 
@@ -314,155 +301,6 @@ icon_text = f"""
     """
 st.markdown(icon_text, unsafe_allow_html=True)
 
-
-# tap_input, tap_context, tap_model, tab_func = st.tabs(
-#     ["💬 聊天", "🗒️ 预设", "⚙️ 模型", "🛠️ 功能"]
-# )
-# tap_input= st.tabs(
-#     ["💬 聊天"]
-# )
-# tap_input = st.empty()
-# with tap_context:
-#     set_context_list = list(set_context_all.keys())
-#     context_select_index = set_context_list.index(
-#         st.session_state["context_select" + current_chat + "value"]
-#     )
-#     st.selectbox(
-#         label="选择提示语",
-#         options=set_context_list,
-#         key="context_select" + current_chat,
-#         index=context_select_index,
-#         on_change=callback_fun,
-#         args=("context_select",),
-#     )
-#     st.caption(set_context_all[st.session_state["context_select" + current_chat]])
-#     st.text_area(
-#         label="补充或自定义提示语：",
-#         key="context_input" + current_chat,
-#         value=st.session_state["context_input" + current_chat + "value"],
-#         on_change=callback_fun,
-#         args=("context_input",),
-#     )
-# with tap_model:
-#     st.markdown("OpenAI API Key (可选)")
-#     st.text_input(
-#         "OpenAI API Key (可选)",
-#         type="password",
-#         key="apikey_input",
-#         label_visibility="collapsed",
-#     )
-#     st.caption(
-#         "此Key仅在当前网页有效，优先级高于Secrets中的配置。[官网获取](https://platform.openai.com/account/api-keys)"
-#     )
-#     st.slider(
-#         "Context Level",
-#         0,
-#         10,
-#         st.session_state["context_level" + current_chat + "value"],
-#         1,
-#         on_change=callback_fun,
-#         key="context_level" + current_chat,
-#         args=("context_level",),
-#         help="表示每次会话中包含的历史对话次数，预设内容不计算在内。",
-#     )
-#     with st.expander("模型参数："):
-#         st.slider(
-#             "Temperature",
-#             0.0,
-#             2.0,
-#             st.session_state["temperature" + current_chat + "value"],
-#             0.1,
-#             help="""在0和2之间，应该使用什么样的采样温度？较高的值（如0.8）会使输出更随机，而较低的值（如0.2）则会使其更加集中和确定性。
-#               我们一般建议只更改这个参数或top_p参数中的一个，而不要同时更改两个。""",
-#             on_change=callback_fun,
-#             key="temperature" + current_chat,
-#             args=("temperature",),
-#         )
-#         st.slider(
-#             "Top P",
-#             0.1,
-#             1.0,
-#             st.session_state["top_p" + current_chat + "value"],
-#             0.1,
-#             help="""一种替代采用温度进行采样的方法，称为“基于核心概率”的采样。在该方法中，模型会考虑概率最高的top_p个标记的预测结果。
-#               因此，当该参数为0.1时，只有包括前10%概率质量的标记将被考虑。我们一般建议只更改这个参数或采样温度参数中的一个，而不要同时更改两个。""",
-#             on_change=callback_fun,
-#             key="top_p" + current_chat,
-#             args=("top_p",),
-#         )
-#         st.slider(
-#             "Presence Penalty",
-#             -2.0,
-#             2.0,
-#             st.session_state["presence_penalty" + current_chat + "value"],
-#             0.1,
-#             help="""该参数的取值范围为-2.0到2.0。正值会根据新标记是否出现在当前生成的文本中对其进行惩罚，从而增加模型谈论新话题的可能性。""",
-#             on_change=callback_fun,
-#             key="presence_penalty" + current_chat,
-#             args=("presence_penalty",),
-#         )
-#         st.slider(
-#             "Frequency Penalty",
-#             -2.0,
-#             2.0,
-#             st.session_state["frequency_penalty" + current_chat + "value"],
-#             0.1,
-#             help="""该参数的取值范围为-2.0到2.0。正值会根据新标记在当前生成的文本中的已有频率对其进行惩罚，从而减少模型直接重复相同语句的可能性。""",
-#             on_change=callback_fun,
-#             key="frequency_penalty" + current_chat,
-#             args=("frequency_penalty",),
-#         )
-#         st.caption(
-#             "[官网参数说明](https://platform.openai.com/docs/api-reference/completions/create)"
-#         )
-# with tab_func:
-#     c1, c2, c3 = st.columns(3)
-#     with c1:
-#         st.button(
-#             "清空聊天记录", use_container_width=True, on_click=clear_button_callback
-#         )
-#     with c2:
-#         btn = st.download_button(
-#             label="导出聊天记录",
-#             data=download_history(st.session_state["history" + current_chat]),
-#             file_name=f'{current_chat.split("_")[0]}.md',
-#             mime="text/markdown",
-#             use_container_width=True,
-#         )
-#     with c3:
-#         st.button(
-#             "删除所有窗口",
-#             use_container_width=True,
-#             on_click=delete_all_chat_button_callback,
-#         )
-
-#     st.write("\n")
-#     st.markdown("自定义功能：")
-#     c1, c2 = st.columns(2)
-#     with c1:
-#         if "open_text_toolkit_value" in st.session_state:
-#             default = st.session_state["open_text_toolkit_value"]
-#         else:
-#             default = True
-#         st.checkbox(
-#             "开启文本下的功能组件",
-#             value=default,
-#             key="open_text_toolkit",
-#             on_change=save_set,
-#             args=("open_text_toolkit",),
-#         )
-#     with c2:
-#         if "open_voice_toolkit_value" in st.session_state:
-#             default = st.session_state["open_voice_toolkit_value"]
-#         else:
-#             default = True
-#         st.checkbox(
-#             "开启语音输入组件",
-#             value=default,
-#             key="open_voice_toolkit",
-#             on_change=save_set,
-#             args=("open_voice_toolkit",),
-#         )
 input_placeholder = st.empty()
 with input_placeholder.container():
 
@@ -506,8 +344,8 @@ with input_placeholder.container():
             st.session_state["user_voice_value"] = vocie_result["voice_result"]["value"]
             if vocie_result["voice_result"]["flag"] == "final":
                 st.session_state["voice_flag"] = "final"
-                st.rerun()
-
+                st.rerun() 
+    
 if st.session_state["user_input_content"] != "":
     if "r" in st.session_state:
         st.session_state.pop("r")
@@ -522,15 +360,9 @@ if st.session_state["user_input_content"] != "":
         [area_user_svg.markdown, area_user_content.markdown],
     )
     st.session_state["history" + current_chat].append(
-            {"role": "user", "content": st.session_state["pre_user_input_content"]}
-        )
+        {"role": "user", "content": st.session_state["pre_user_input_content"]}
+    )
     write_data()
-    # show_each_message(
-    #     "Thinking...",
-    #     "assistant",
-    #     "tem",
-    #     [area_gpt_svg.markdown, area_gpt_content.markdown],
-    # )
     show_spin_message(area_gpt_svg.markdown)
     # 调用接口
     with area_gpt_content.container():
@@ -553,18 +385,9 @@ if st.session_state["user_input_content"] != "":
                 area_error.error(
                     "Timeout"
                 )
-            except openai.error.AuthenticationError:
-                area_error.error("无效的 OpenAI API Key。")
-            except openai.error.APIConnectionError as e:
-                area_error.error("连接超时，请重试。报错：   \n" + str(e.args[0]))
-            except openai.error.InvalidRequestError as e:
-                area_error.error("无效的请求，请重试。报错：   \n" + str(e.args[0]))
-            except openai.error.RateLimitError as e:
-                area_error.error("请求受限。报错：   \n" + str(e.args[0]))
             else:
                 st.session_state["chat_of_r"] = current_chat
                 st.session_state["r"] = r
-                print("e1", st.session_state["r"])
                 st.rerun()
 
 if ("r" in st.session_state) and (current_chat == st.session_state["chat_of_r"]):
@@ -573,37 +396,22 @@ if ("r" in st.session_state) and (current_chat == st.session_state["chat_of_r"])
     try:
         if type(st.session_state["r"]) == str:
             st.session_state[current_chat + "report"] = st.session_state["r"]
-            # show_each_message(
-            #             st.session_state["pre_user_input_content"],
-            #             "user",
-            #             "tem",
-            #             [area_user_svg.markdown, area_user_content.markdown],
-            #         )
             show_each_message(
                 st.session_state[current_chat + "report"],
                 "assistant",
                 "tem",
-                [area_gpt_svg.markdown, area_gpt_content.markdown],
+                [area_gpt_svg.markdown, area_gpt_content.markdown]
             )
         else:
             for chunk in st.session_state["r"].iter_lines(decode_unicode=True):
-                print("Receiving", chunk)
                 if chunk:
-                    # chunk = chunk.replace("\n", "<br/>")
-                    # print("CHUNK", chunk)
                     st.session_state[current_chat + "report"] += chunk
-                    
-                    # show_each_message(
-                    #     st.session_state["pre_user_input_content"],
-                    #     "user",
-                    #     "tem",
-                    #     [area_user_svg.markdown, area_user_content.markdown],
-                    # )
                     show_each_message(
                         st.session_state[current_chat + "report"],
                         "assistant",
                         "tem",
                         [area_gpt_svg.markdown, area_gpt_content.markdown],
+                        st.session_state["option_nodes"]                
                     )
     except ChunkedEncodingError:
         area_error.error("网络状况不佳，请刷新页面重试。")
@@ -627,5 +435,31 @@ if ("r" in st.session_state) and (current_chat == st.session_state["chat_of_r"])
         st.session_state.pop("r")
         st.rerun()
 
-# 添加事件监听
+if st.session_state["user_query_from_button"] and st.session_state["button_response"]:
+    show_each_message(
+        st.session_state["user_query_from_button"],
+        "user",
+        "tem",
+        [area_user_svg.markdown, area_user_content.markdown]
+    )
+    candidate_options = requests.get(LOCAL_HOST + "/get-options")
+    candidate_options = ast.literal_eval(candidate_options.text)
+    show_each_message(
+        st.session_state["button_response"],
+        "assistant",
+        "tem",
+        [area_gpt_svg.markdown, area_gpt_content.markdown],
+        candidate_options
+    )
+    st.session_state["history" + current_chat].append(
+        {"role": "user", "content": st.session_state["user_query_from_button"]}
+    )
+    st.session_state["history" + current_chat].append(
+        {"role": "assistant", "content": st.session_state["button_response"], "button": candidate_options}
+    )
+    write_data()
+    st.session_state["user_query_from_button"] = None
+    st.session_state["button_response"] = None
+    
+
 v1.html(js_code, height=0)

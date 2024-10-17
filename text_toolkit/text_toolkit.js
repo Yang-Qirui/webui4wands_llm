@@ -361,6 +361,7 @@ function sendRating() {
         "value":
         {
             "ratings": currentRatings,
+            "aminos": 1
         }
     });
 }

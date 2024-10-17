@@ -8,6 +8,7 @@ from .custom import *
 import copy
 import io
 from text_toolkit import text_toolkit
+from intra_button_toolkit import intra_button_toolkit
 import markdown
 
 
@@ -60,7 +61,7 @@ def load_data(path: str, file_name: str) -> dict:
         return content
 
 
-def show_each_message(message: str, role: str, idr: str, area=None):
+def show_each_message(message: str, role: str, idr: str, area=None, buttons=None):
     if area is None:
         area = [st.markdown] * 2
     if role == 'user':
@@ -75,6 +76,12 @@ def show_each_message(message: str, role: str, idr: str, area=None):
         background_color = gpt_background_color
         data_idr = idr + "_assistant"
         class_name = 'assistant'
+    if buttons:
+        btn_code = ""
+        for btn_name in buttons:
+            btn_code += f"<button class='intra-button' node_name='{btn_name}'>{btn_name}</button>"
+        btn_block_code = f"<div>{btn_code}</div>"
+        
     message = url_correction(message)
     area[0](f"\n<div class='avatar'>{icon}<h2>{name}:</h2></div>", unsafe_allow_html=True)
     if "[TX_SEP]" in message:
@@ -90,7 +97,8 @@ def show_each_message(message: str, role: str, idr: str, area=None):
         else:
             head = False
         generate_html += (div_template + message)
-
+    if buttons:
+        generate_html += btn_block_code
     area[1](generate_html, unsafe_allow_html=True)
 
 def show_spin_message(area):
@@ -102,8 +110,7 @@ def show_spin_message(area):
 def show_messages(current_chat: str, messages: list):
     id_role = 0
     id_assistant = 0
-    for each in messages:
-        print(each)
+    for i, each in enumerate(messages):
         if each["role"] == "user":
             idr = id_role
             id_role += 1
@@ -113,13 +120,12 @@ def show_messages(current_chat: str, messages: list):
         else:
             idr = False
         if idr is not False:
-            show_each_message(each["content"], each["role"], str(idr))
+            show_each_message(each["content"], each["role"], str(idr), buttons=each['button'] if i == len(messages) - 1 else None)
             if "open_text_toolkit_value" not in st.session_state or st.session_state["open_text_toolkit_value"]:
                 # st.session_state['frontend_msg_dict'][current_chat + ">" + str(idr)] = text_toolkit(
                 #     data_idr=str(idr) + '_' + each["role"], ratings=each.get("ratings", {}), clicked=each.get("clicked", {}))
                 st.session_state['frontend_msg_dict'][current_chat + ">" + str(idr)] = text_toolkit(
                     data_idr=str(idr) + '_' + each["role"], ratings=each.get("ratings", {}))
-                # print(each.get("clicked", {}))
         if each["role"] == "assistant":
             st.write("---")
 
