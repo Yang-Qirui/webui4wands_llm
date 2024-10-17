@@ -280,7 +280,6 @@ area_user_content = st.empty()
 # 回复展示
 area_gpt_svg = st.empty()
 area_gpt_content = st.empty()
-area_btn = st.empty()
 # 报错展示
 area_error = st.empty()
 
@@ -416,8 +415,10 @@ if ("r" in st.session_state) and (current_chat == st.session_state["chat_of_r"])
         # st.session_state["history" + current_chat].append(
         #     {"role": "user", "content": st.session_state["pre_user_input_content"]}
         # )
+        candidate_options = requests.get(LOCAL_HOST + "/get-options")
+        candidate_options = ast.literal_eval(candidate_options.text)
         st.session_state["history" + current_chat].append(
-            {"role": "assistant", "content": st.session_state[current_chat + "report"]}
+            {"role": "assistant", "content": st.session_state[current_chat + "report"], "button": candidate_options}
         )
         write_data()
     # 用户在网页点击stop时，ss某些情形下会暂时为空
@@ -427,6 +428,12 @@ if ("r" in st.session_state) and (current_chat == st.session_state["chat_of_r"])
         st.session_state.pop("r")
         st.rerun()
 
+# print(st.session_state["jump_msg_dict"])
+if st.session_state["jump_msg_dict"]:
+    jump_msg_dict = st.session_state["jump_msg_dict"]
+    st.session_state["user_query_from_button"] = jump_msg_dict["user_query_from_button"]
+    st.session_state["button_response"] = jump_msg_dict["button_response"]
+    st.session_state["jump_msg_dict"] = None
 
 if st.session_state["user_query_from_button"] and st.session_state["button_response"]:
     show_each_message(
@@ -453,13 +460,8 @@ if st.session_state["user_query_from_button"] and st.session_state["button_respo
     write_data()
     st.session_state["user_query_from_button"] = None
     st.session_state["button_response"] = None
+    st.rerun()
 
-# print(st.session_state["jump_msg_dict"])
-if st.session_state["jump_msg_dict"]:
-    jump_msg_dict = st.session_state["jump_msg_dict"]
-    st.session_state["user_query_from_button"] = jump_msg_dict["user_query_from_button"]
-    st.session_state["button_response"] = jump_msg_dict["button_response"]
-    st.session_state["jump_msg_dict"] = None
     
 
 v1.html(js_code, height=0)

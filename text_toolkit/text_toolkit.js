@@ -293,7 +293,7 @@ deleteButton.addEventListener('click', () => {
     window.parent.deleteCount += 1
 })
 
-// 设置组件高度
+// // 设置组件高度
 window.addEventListener("DOMContentLoaded", function () {
     setFrameHeight(21)
 });

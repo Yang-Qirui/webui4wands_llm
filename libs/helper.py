@@ -65,6 +65,7 @@ def show_each_message(message: str, role: str, idr: str, area=None, buttons=None
 
     if area is None:
         area = [st.markdown] * 2
+        
     if role == 'user':
         icon = user_svg
         name = user_name
@@ -94,8 +95,6 @@ def show_each_message(message: str, role: str, idr: str, area=None, buttons=None
             head = False
         generate_html += (div_template + message)
     area[1](generate_html, unsafe_allow_html=True)
-    if buttons:
-        st.session_state["jump_msg_dict"] = intra_button_toolkit(button_names=buttons)
 
 def show_spin_message(area):
     icon = gpt_svg
@@ -116,7 +115,10 @@ def show_messages(current_chat: str, messages: list):
         else:
             idr = False
         if idr is not False:
-            show_each_message(each["content"], each["role"], str(idr), buttons=each['button'] if i == len(messages) - 1 else None)
+            show_each_message(each["content"], each["role"], str(idr))
+            if i == len(messages) - 1 and each['role'] == 'assistant' and len(each['button']) > 0:
+                st.session_state["jump_msg_dict"] = intra_button_toolkit(button_names=each['button'])
+            
             if "open_text_toolkit_value" not in st.session_state or st.session_state["open_text_toolkit_value"]:
                 # st.session_state['frontend_msg_dict'][current_chat + ">" + str(idr)] = text_toolkit(
                 #     data_idr=str(idr) + '_' + each["role"], ratings=each.get("ratings", {}), clicked=each.get("clicked", {}))
